@@ -17,6 +17,7 @@ int main()
 		LOGE("> Net init failed! <");
 		exit(0);
 	}
+	LOGI("> Net Created! <");
 	while (pServer!=NULL)
 	{
 		if (pServer->AcceptClient() == false)

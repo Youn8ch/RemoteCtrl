@@ -2,6 +2,84 @@
 #include <WS2tcpip.h>
 #include "ServerSocket.h"
 #include "Log.h"
+
+class CPacket
+{
+public:
+	CPacket() : sHead(0), nLength(0), sCmd(0), sSum(0) {}
+	CPacket(const CPacket& pack) {
+		sHead = pack.sHead;
+		nLength = pack.nLength;
+		sCmd = pack.sCmd;
+		strData = pack.strData;
+		sSum = pack.sSum;
+	}
+	CPacket(const BYTE* pdata, size_t& nsize) {
+		size_t i = 0;
+		for (; i < nsize; i++)
+		{
+			if (*(WORD*)(pdata+i)==0xFEFF)
+			{
+				sHead = *(WORD*)(pdata + i);
+				i += 2;
+				break;
+			}
+		}
+		if (i + 8 > nsize)
+		{	
+			nsize = 0;
+			return;
+			// 包数据可能不全，或包头未接受到
+		}
+		nLength = *(DWORD*)(pdata + i); i += 4;
+		if (nLength +i>nsize)
+		{
+			nsize = 0; return;
+			// 包数据不全
+		}
+		sCmd = *(WORD*)(pdata + i); i += 2;
+		if (nLength >4)
+		{
+			strData.resize(nLength - 2 - 2);
+			memcpy((void*)strData.c_str(), pdata + i, nLength - 4);
+			i += nLength - 4;
+		}
+		sSum = *(WORD*)(pdata + i); i += 2;
+		WORD sum = 0;
+		for (size_t j = 0; j < strData.size(); j++)
+		{
+			sum += BYTE(strData[j]) & 0xFF;
+		}
+		if (sum = sSum)
+		{
+			nsize = i; // head 2 length 4 data
+			return;
+		}
+		nsize = 0;
+
+	}
+	CPacket operator=(const CPacket& pack) {
+		if (this != &pack)
+		{
+			sHead = pack.sHead;
+			nLength = pack.nLength;
+			sCmd = pack.sCmd;
+			strData = pack.strData;
+			sSum = pack.sSum;
+		}
+		return *this;
+	}
+	~CPacket(){}
+
+public:
+	WORD sHead;	// 固定位 FE FF
+	DWORD nLength; // 包长度 从控制命令开始，到和校验结束
+	WORD sCmd; // 控制命令
+	std::string strData;
+	WORD sSum; // 和校验
+};
+
+
 class CServerSocket
 {
 
@@ -45,17 +123,27 @@ public:
 		return true;
 	}
 
+#define BUFFER_SIZE 4096
+
 	int DealCommand() {
-		if (m_client==-1) return false;
-		char buffer[1024] = "";
+		if (m_client==-1) return -1;
+		char* buffer = new char[BUFFER_SIZE];
+		memset(buffer, 0, BUFFER_SIZE);
+		size_t index = 0;
 		while (true)
 		{
-			int len = recv(m_client, buffer, sizeof(buffer), 0);
+			size_t len = recv(m_client, buffer+index, BUFFER_SIZE -index, 0);
 			if (len <= 0)
 			{
 				return -1;
 			}
-			// TODO deal
+			m_packet = CPacket((const BYTE * )buffer, index);
+			if (index >0)
+			{
+				memmove(buffer, buffer + index, BUFFER_SIZE - index);
+				index = 0;
+				return m_packet.sCmd;
+			}
 		}
 	}
 
@@ -67,7 +155,7 @@ public:
 private:
 	SOCKET m_sock;
 	SOCKET m_client;
-
+	CPacket m_packet;
 private:
 	CServerSocket operator = (const CServerSocket&) {}
 	CServerSocket(const CServerSocket&) {}
