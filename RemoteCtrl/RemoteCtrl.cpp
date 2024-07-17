@@ -138,6 +138,112 @@ int DownloadFile() {
 	fclose(pFile);
 }
 
+
+int MouseEvent() {
+	MOUSEEVENT mouse;
+	if (CServerSocket::getInstance()->GetMouseEvent(mouse)) {
+		SetCursorPos(mouse.ptXY.x, mouse.ptXY.y);
+		DWORD nFlag = 0;
+		switch (mouse.nButton)
+		{
+		case 0: // 左键
+			nFlag = 1;
+			break;
+		case 1: // 右键
+			nFlag = 2;
+			break;
+		case 2:	// 中键
+			nFlag = 4;
+			break;
+		default:
+			break;
+		}
+		switch (mouse.nAction)
+		{
+		case 0: // 单击
+			nFlag |= 0x10;
+			break;
+		case 1: // 双击
+			nFlag |= 0x20;
+			break;
+		case 2:	// 按下
+			nFlag |= 0x40;
+			break;
+		case 3: // 放开
+			nFlag |= 0x80;
+			break;
+		default:
+			break;
+		}
+		switch (nFlag)
+		{
+		// 低位 nButton 高位 nAction
+		case 0x11: // 左键单击
+			mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
+			mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, GetMessageExtraInfo());
+			break;
+		case 0x21: // 左键双击
+			mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
+			mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, GetMessageExtraInfo());
+			mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
+			mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, GetMessageExtraInfo());
+			break;
+		case 0x41: // 左键按下
+			mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, GetMessageExtraInfo());
+			break;
+		case 0x81: // 左键放开
+			mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, GetMessageExtraInfo());
+			break;
+
+		case 0x12: // 右键单击
+			mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, GetMessageExtraInfo());
+			mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, GetMessageExtraInfo());
+			break;
+		case 0x22: // 右键双击
+			mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, GetMessageExtraInfo());
+			mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, GetMessageExtraInfo());
+			mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, GetMessageExtraInfo());
+			mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, GetMessageExtraInfo());
+			break;
+		case 0x42: // 右键按下
+			mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, GetMessageExtraInfo());
+			break;
+		case 0x82: // 右键放开
+			mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, GetMessageExtraInfo());
+			break;
+
+		case 0x14: // 中键单击
+			mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, GetMessageExtraInfo());
+			mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
+			break;
+		case 0x24: // 中键双击
+			mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, GetMessageExtraInfo());
+			mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
+			mouse_event(MOUSEEVENTF_MIDDLEDOWN, 0, 0, 0, GetMessageExtraInfo());
+			mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, GetMessageExtraInfo());
+			break;
+		case 0x44: // 中键按下
+			nFlag |= 0x40;
+			break;
+		case 0x84: // 中键放开
+			nFlag |= 0x80;
+			break;
+		case 0x08: // 鼠标移动
+			break;
+		default:
+			break;
+		}
+		CPacket pack(4, NULL, 0);
+		CServerSocket::getInstance()->Send(pack);
+	}
+	else
+	{
+		LOGE("> mouse operation failed <");
+		return -1;
+	}
+	return 0;
+}
+
 int main()
 {
 
@@ -177,6 +283,9 @@ int main()
 		break;
 	case 4:
 		DownloadFile();
+		break;
+	case 5:
+		MouseEvent(); // 鼠标操作
 		break;
 	default:
 		break;
