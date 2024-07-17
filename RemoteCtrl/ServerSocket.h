@@ -15,8 +15,15 @@ public:
 		sHead = 0xFEFF;
 		nLength = nsize+4;
 		sCmd = nCmd;
-		strData.resize(nsize);
-		memcpy(&strData[0], pdata, nsize);
+		if (nsize > 0)
+		{
+			strData.resize(nsize);
+			memcpy(&strData[0], pdata, nsize);
+		}
+		else
+		{
+			strData.clear();
+		}
 		sSum = 0;
 		for (size_t j = 0; j < strData.size(); j++)
 		{
@@ -106,7 +113,7 @@ public:
 	WORD sHead;	// 固定位 FE FF
 	DWORD nLength; // 包长度 从控制命令开始，到和校验结束
 	WORD sCmd; // 控制命令
-	std::string strData;
+	std::string strData; // 包数据
 	WORD sSum; // 和校验
 	std::string strOut; // 整个包的数据
 };
@@ -188,6 +195,16 @@ public:
 		if (m_client == -1) return false;
 		return send(m_client, (const char*)pack.getData(), pack.getSize(), 0) > 0;
 	}
+	bool GetFilePath(std::string& path) {
+		if (m_packet.sCmd>=2 && m_packet.sCmd <= 4)
+		{
+			path = m_packet.strData;
+			return true;
+		}
+		return false;
+	}
+
+
 private:
 	SOCKET m_sock;
 	SOCKET m_client;
