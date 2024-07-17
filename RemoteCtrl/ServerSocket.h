@@ -3,10 +3,26 @@
 #include "ServerSocket.h"
 #include "Log.h"
 
+
+#pragma pack(push)
+#pragma pack(1)
+
 class CPacket
 {
 public:
 	CPacket() : sHead(0), nLength(0), sCmd(0), sSum(0) {}
+	CPacket(WORD nCmd, const BYTE* pdata, size_t nsize) {
+		sHead = 0xFEFF;
+		nLength = nsize+4;
+		sCmd = nCmd;
+		strData.resize(nsize);
+		memcpy(&strData[0], pdata, nsize);
+		sSum = 0;
+		for (size_t j = 0; j < strData.size(); j++)
+		{
+			sSum += BYTE(strData[j]) & 0xFF;
+		}
+	}
 	CPacket(const CPacket& pack) {
 		sHead = pack.sHead;
 		nLength = pack.nLength;
@@ -72,13 +88,30 @@ public:
 	~CPacket(){}
 
 public:
+	int getSize() {
+		return nLength + 6;
+	}
+	const char* getData() {
+		strOut.resize(nLength + 6);
+		BYTE* pData = (BYTE*)strOut.c_str();
+		*(WORD*)pData = sHead; pData += 2;
+		*(DWORD*)pData = nLength; pData += 4;
+		*(WORD*)pData = sCmd; pData += 2;
+		memcpy(pData, strData.c_str(), strData.size()); pData += strData.size();
+		*(WORD*)pData = sSum;
+		return strOut.c_str();
+	}
+
+public:
 	WORD sHead;	// 固定位 FE FF
 	DWORD nLength; // 包长度 从控制命令开始，到和校验结束
 	WORD sCmd; // 控制命令
 	std::string strData;
 	WORD sSum; // 和校验
+	std::string strOut; // 整个包的数据
 };
 
+#pragma pack(pop)
 
 class CServerSocket
 {
@@ -151,7 +184,10 @@ public:
 		if (m_client == -1) return false;
 		return send(m_client, pdata, size, 0) > 0;
 	}
-
+	bool Send(CPacket& pack) {
+		if (m_client == -1) return false;
+		return send(m_client, (const char*)pack.getData(), pack.getSize(), 0) > 0;
+	}
 private:
 	SOCKET m_sock;
 	SOCKET m_client;
