@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <io.h>
 #include <list>
+#include <atlimage.h>
 // #pragma comment(lib, "Ws2_32.lib")
 
 void Dump(BYTE* pdata, size_t length) {
@@ -244,6 +245,39 @@ int MouseEvent() {
 	return 0;
 }
 
+int SendScreen() {
+	CImage screen;
+	HDC hScreen = ::GetDC(NULL);
+	int nBitPerpixel = GetDeviceCaps(hScreen, BITSPIXEL);
+	int nWidth = GetDeviceCaps(hScreen, HORZRES);
+	int nHeigth = GetDeviceCaps(hScreen, VERTRES);
+	screen.Create(nWidth, nHeigth, nBitPerpixel);
+	BitBlt(screen.GetDC(), 0, 0, 1920, 1080, hScreen, 0, 0, SRCCOPY);
+	ReleaseDC(NULL, hScreen);
+	HGLOBAL hMem =  GlobalAlloc(GMEM_MOVEABLE, 0);
+	if (hMem == NULL) return -1;
+	IStream* pStream = NULL;
+	HRESULT ret = CreateStreamOnHGlobal(hMem,TRUE,&pStream);
+	if (ret == S_OK)
+	{
+		screen.Save(pStream, Gdiplus::ImageFormatPNG);
+		LARGE_INTEGER bg = {0};
+		pStream->Seek(bg, STREAM_SEEK_SET, NULL);
+		PBYTE pData = (PBYTE)GlobalLock(hMem);
+		SIZE_T nSize = GlobalSize(hMem);
+		CPacket pack(6, pData, nSize);
+		CServerSocket::getInstance()->Send(pack);
+		GlobalUnlock(hMem);
+	}
+	screen.Save(pStream,Gdiplus::ImageFormatPNG);
+	// screen.Save(_T("test123.jpeg"), Gdiplus::ImageFormatJPEG);
+	// LOGI("> save done! <");
+	pStream->Release();
+	GlobalFree(hMem);
+	screen.ReleaseDC();
+	return 0;
+}
+
 int main()
 {
 
@@ -269,7 +303,7 @@ int main()
 	//	// TODO
 	//}
 	
-	int nCmd = 1;
+	int nCmd = 6;
 	switch (nCmd)
 	{
 	case 1:
@@ -286,6 +320,9 @@ int main()
 		break;
 	case 5:
 		MouseEvent(); // 鼠标操作
+		break;
+	case 6:
+		SendScreen(); // 发送屏幕内容 -> 发送屏幕截图
 		break;
 	default:
 		break;
