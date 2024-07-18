@@ -10,7 +10,7 @@
 class CPacket
 {
 public:
-	CPacket() : sHead(0), nLength(0), sCmd(0), sSum(0) {}
+	CPacket() : sHead(0), nLength(0), sCmd(0), sSum(0), strData(), strOut() {}
 	CPacket(WORD nCmd, const BYTE* pdata, size_t nsize) {
 		sHead = 0xFEFF;
 		nLength = nsize+4;
@@ -37,7 +37,8 @@ public:
 		strData = pack.strData;
 		sSum = pack.sSum;
 	}
-	CPacket(const BYTE* pdata, size_t& nsize) {
+	CPacket(const BYTE* pdata, size_t& nsize) : sHead(0), nLength(0), sCmd(0), sSum(0)
+	{
 		size_t i = 0;
 		for (; i < nsize; i++)
 		{
@@ -232,7 +233,7 @@ private:
 	CPacket m_packet;
 private:
 	CServerSocket operator = (const CServerSocket&) {}
-	CServerSocket(const CServerSocket&) {}
+	CServerSocket(const CServerSocket&) : m_sock(0), m_client(0){}
 	CServerSocket() {
 		m_client = INVALID_SOCKET;
 		m_sock = INVALID_SOCKET;

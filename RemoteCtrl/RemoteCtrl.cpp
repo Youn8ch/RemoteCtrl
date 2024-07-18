@@ -11,7 +11,7 @@
 #include <io.h>
 #include <list>
 #include <atlimage.h>
-// #pragma comment(lib, "Ws2_32.lib")
+#pragma comment(lib, "Ws2_32.lib")
 
 void Dump(BYTE* pdata, size_t length) {
 	std::string strout;
@@ -137,6 +137,7 @@ int DownloadFile() {
 	CPacket pack(4, NULL, 0);
 	CServerSocket::getInstance()->Send(pack);
 	fclose(pFile);
+	return 0;
 }
 
 

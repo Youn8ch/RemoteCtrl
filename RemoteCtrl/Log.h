@@ -31,8 +31,8 @@ static std::string getFile(std::string file) {
     std::string::size_type pos;
     std::vector<std::string> result;
     file += pattern;//扩展字符串以方便操作
-    int size = file.size();
-    for (int i = 0; i < size; i++) {
+    size_t size = file.size();
+    for (size_t i = 0; i < size; i++) {
         pos = file.find(pattern, i);
         if (pos < size) {
             std::string s = file.substr(i, pos - i);
